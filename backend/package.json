@@ -14,7 +14,7 @@
     "seed:dewas": "node scripts/seed/dewas.js",
     "seed:ratlam": "node scripts/seed/ratlam.js",
     "seed:jabalpur":"node scripts/seed/jabalpur.js",
-    "seed:omkareshwar":"node scripts/seed/omkareshwar.js",
+    "seed:omkareshwar":"node scripts/seed/omkaeshwar.js",
     "seed:maheshwar":"node scripts/seed/maheshwar.js",
     "seed:all": "node scripts/seed/indore.js && node scripts/seed/ujjain.js && node scripts/seed/bhopal.js && node scripts/seed/dewas.js && node scripts/seed/ratlam.js"
   },
