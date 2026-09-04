@@ -1,0 +1,6 @@
+{
+  "name": "Indian Heritage",
+  "description": "Explore India's majestic monuments, cultural night markets, interactive heritage maps, and digital heritage passport.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

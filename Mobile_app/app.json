@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Indian Heritage",
+    "slug": "indian-heritage",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "android": {
+      "usesCleartextTraffic": true,
+      "package": "com.dharohar.indianheritage"
+    },
+    "ios": {
+      "bundleIdentifier": "com.dharohar.indianheritage"
+    }
+  }
+}

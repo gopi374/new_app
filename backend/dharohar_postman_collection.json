@@ -1,0 +1,556 @@
+{
+  "info": {
+    "_postman_id": "dharohar-backend-collection-v1",
+    "name": "Dharohar Backend API Collection",
+    "description": "Complete Postman collection for Dharohar India's Digital Cultural Ecosystem API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "1. Auth & User Management",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@dharohar.app\",\n  \"password\": \"Password@123\",\n  \"full_name\": \"Indore Explorer\",\n  \"bio\": \"Cultural heritage enthusiast\",\n  \"home_city_id\": \"city_indore_mp\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@dharohar.app\",\n  \"password\": \"Password@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "Get User Profile (/me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Discovery & Geo-Search",
+      "item": [
+        {
+          "name": "Geo Near (Around Rajwada)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/discovery/near?lng=75.8577&lat=22.7196&radiusMeters=5000&type=places",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "discovery", "near"],
+              "query": [
+                { "key": "lng", "value": "75.8577" },
+                { "key": "lat", "value": "22.7196" },
+                { "key": "radiusMeters", "value": "5000" },
+                { "key": "type", "value": "places" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Geo Bounding Box",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/discovery/bbox?minLng=75.80&minLat=22.65&maxLng=75.95&maxLat=22.75&type=places",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "discovery", "bbox"],
+              "query": [
+                { "key": "minLng", "value": "75.80" },
+                { "key": "minLat", "value": "22.65" },
+                { "key": "maxLng", "value": "75.95" },
+                { "key": "maxLat", "value": "22.75" },
+                { "key": "type", "value": "places" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Unified Search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/search?q=Sarafa",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "search"],
+              "query": [{ "key": "q", "value": "Sarafa" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Content Collections",
+      "item": [
+        {
+          "name": "List Places in Indore",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/places?city_id=city_indore_mp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "places"],
+              "query": [{ "key": "city_id", "value": "city_indore_mp" }]
+            }
+          }
+        },
+        {
+          "name": "Get Place Detail (Rajwada Palace)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/places/place_rajwada_palace",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "places", "place_rajwada_palace"]
+            }
+          }
+        },
+        {
+          "name": "List Markets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/markets",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "markets"]
+            }
+          }
+        },
+        {
+          "name": "List Foods",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/foods",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "foods"]
+            }
+          }
+        },
+        {
+          "name": "List Food Places",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/food-places",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "food-places"]
+            }
+          }
+        },
+        {
+          "name": "List Artisans",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/artisans",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "artisans"]
+            }
+          }
+        },
+        {
+          "name": "List Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "events"]
+            }
+          }
+        },
+        {
+          "name": "List Stories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stories",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "stories"]
+            }
+          }
+        },
+        {
+          "name": "List Cultural Trails",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trails",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "trails"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Saved Items",
+      "item": [
+        {
+          "name": "Get User Saved Items",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/saved-items",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "saved-items"]
+            }
+          }
+        },
+        {
+          "name": "Save an Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entity_type\": \"PLACE\",\n  \"entity_id\": \"place_rajwada_palace\",\n  \"notes\": \"Must visit during evening light show\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/saved-items",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "saved-items"]
+            }
+          }
+        },
+        {
+          "name": "Unsave an Item",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/saved-items/saved_user_xxx_PLACE_place_rajwada_palace",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "saved-items", "saved_user_xxx_PLACE_place_rajwada_palace"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Contributions Pipeline",
+      "item": [
+        {
+          "name": "Submit Hidden Gem Contribution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contribution_type\": \"HIDDEN_GEM_SUBMISSION\",\n  \"proposed_data\": {\n    \"_id\": \"place_choral_dam\",\n    \"name\": \"Choral Dam\",\n    \"normalized_name\": \"choral dam\",\n    \"place_type\": \"HIDDEN_GEM\",\n    \"city_id\": \"city_indore_mp\",\n    \"state_id\": \"state_mp\",\n    \"location\": {\n      \"type\": \"Point\",\n      \"coordinates\": [75.8624, 22.4287]\n    },\n    \"description\": \"Tranquil dam surrounded by Malwa hills ideal for boat rides.\",\n    \"discovery\": {\n      \"is_hidden_gem\": true,\n      \"discovery_level\": \"LOCAL_SECRET\",\n      \"why_visit\": \"Quiet weekend getaway with clear waters.\"\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/contributions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "contributions"]
+            }
+          }
+        },
+        {
+          "name": "Get Pending Contributions (Moderator+)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/contributions/pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "contributions", "pending"]
+            }
+          }
+        },
+        {
+          "name": "Approve Contribution (Moderator+)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"review_notes\": \"Verified location and details against dossier.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/contributions/contrib_xxx/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "contributions", "contrib_xxx", "approve"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Issue Reports",
+      "item": [
+        {
+          "name": "Submit Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"report_type\": \"OUTDATED_INFORMATION\",\n  \"target_entity\": {\n    \"entity_type\": \"PLACE\",\n    \"entity_id\": \"place_rajwada_palace\"\n  },\n  \"description\": \"Visiting hours changed for monsoon season.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reports"]
+            }
+          }
+        },
+        {
+          "name": "Get Open Reports (Moderator+)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/open",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reports", "open"]
+            }
+          }
+        },
+        {
+          "name": "Resolve Report (Moderator+)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"report_status\": \"RESOLVED\",\n  \"resolution_notes\": \"Updated visiting hours in database.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/rep_xxx/resolve",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reports", "rep_xxx", "resolve"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Admin Verification & Publication",
+      "item": [
+        {
+          "name": "Update Verification Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verification_status\": \"VERIFIED\",\n  \"verification_notes\": \"Fact checked with Indore Heritage Dossier\",\n  \"sources\": [\"Indore Dossier 2026\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/places/place_choral_dam/verification",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "places", "place_choral_dam", "verification"]
+            }
+          }
+        },
+        {
+          "name": "Update Publication Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"publication_status\": \"PUBLISHED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/places/place_choral_dam/publication",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "places", "place_choral_dam", "publication"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
