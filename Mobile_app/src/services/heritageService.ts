@@ -3,33 +3,23 @@ import Constants from 'expo-constants';
 import { MONUMENTS, MARKETS, BADGES, HERITAGE_APPS, USER_PROFILE, CITIES } from '../data/mockData';
 import { Monument, MarketItem, HeritageBadge, HeritageAppService, UserProfile, CityItem, TrailItem } from '../types';
 
+const PRODUCTION_API_URL = 'https://indian-heritage-cyzm.onrender.com/api/v1';
+
 /**
- * Auto-detect backend URL:
- * - If EXPO_PUBLIC_API_URL is set in .env, use it.
- * - Otherwise derive the host from Metro bundler (works for both
- *   physical devices AND emulators automatically).
- * Metro's hostUri looks like "192.168.43.133:8081". We strip the
- * port and replace it with the backend port 4000.
+ * Backend API URL:
+ * - Uses EXPO_PUBLIC_API_URL from .env if defined.
+ * - Defaults to the deployed Render backend (https://indian-heritage-cyzm.onrender.com/api/v1).
  */
 function getApiBaseUrl(): string {
-  if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
-  // Derive from Metro bundler host (works on real device & emulator)
-  const metroHost: string | undefined =
-    (Constants.expoConfig as any)?.hostUri ||
-    (Constants as any).manifest?.debuggerHost ||
-    (Constants as any).manifest2?.extra?.expoGo?.debuggerHost;
-  if (metroHost) {
-    const host = metroHost.split(':')[0]; // strip Metro port
-    return `http://${host}:4000/api/v1`;
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (envUrl && envUrl.trim().length > 0) {
+    return envUrl.trim().replace(/\/+$/, '');
   }
-  // Final fallback
-  return Platform.OS === 'android'
-    ? 'http://10.0.2.2:4000/api/v1'
-    : 'http://localhost:4000/api/v1';
+  return PRODUCTION_API_URL;
 }
 
 export const API_BASE_URL = getApiBaseUrl();
-console.log('[API] Base URL:', API_BASE_URL);
+console.log('[API] Connected to:', API_BASE_URL);
 
 class HeritageService {
   private monuments: Monument[] = [...MONUMENTS];
@@ -87,7 +77,7 @@ class HeritageService {
       return {
         success: false,
         error: isNetworkErr
-          ? 'Cannot reach server. Open a terminal and run: cd backend && npm start'
+          ? 'Cannot reach server. Please check your internet connection or verify backend status.'
           : err.message || 'Login failed',
       };
     }
@@ -122,7 +112,7 @@ class HeritageService {
       return {
         success: false,
         error: isNetworkErr
-          ? 'Cannot reach server. Make sure backend is running on port 4000'
+          ? 'Cannot reach server. Please check your internet connection or verify backend status.'
           : err.message || 'Registration failed',
       };
     }
