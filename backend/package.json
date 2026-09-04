@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
+    "build":"npm run build",
     "create-indexes": "node scripts/create-indexes.js",
     "seed:indore": "node scripts/seed/indore.js",
     "seed:ujjain": "node scripts/seed/ujjain.js",
@@ -14,8 +15,9 @@
     "seed:dewas": "node scripts/seed/dewas.js",
     "seed:ratlam": "node scripts/seed/ratlam.js",
     "seed:jabalpur":"node scripts/seed/jabalpur.js",
-    "seed:omkareshwar":"node scripts/seed/omkaeshwar.js",
+    "seed:omkareshwar":"node scripts/seed/omkareshwar.js",
     "seed:maheshwar":"node scripts/seed/maheshwar.js",
+    "seed:sehore":"node scripts/seed/sehore.js",
     "seed:all": "node scripts/seed/indore.js && node scripts/seed/ujjain.js && node scripts/seed/bhopal.js && node scripts/seed/dewas.js && node scripts/seed/ratlam.js"
   },
   "keywords": [
