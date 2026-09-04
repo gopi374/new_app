@@ -8,7 +8,15 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "create-indexes": "node scripts/create-indexes.js",
-    "seed:indore": "node scripts/seed/indore.js"
+    "seed:indore": "node scripts/seed/indore.js",
+    "seed:ujjain": "node scripts/seed/ujjain.js",
+    "seed:bhopal": "node scripts/seed/bhopal.js",
+    "seed:dewas": "node scripts/seed/dewas.js",
+    "seed:ratlam": "node scripts/seed/ratlam.js",
+    "seed:jabalpur":"node scripts/seed/jabalpur.js",
+    "seed:omkareshwar":"node scripts/seed/omkareshwar.js",
+    "seed:maheshwar":"node scripts/seed/maheshwar.js",
+    "seed:all": "node scripts/seed/indore.js && node scripts/seed/ujjain.js && node scripts/seed/bhopal.js && node scripts/seed/dewas.js && node scripts/seed/ratlam.js"
   },
   "keywords": [
     "dharohar",
