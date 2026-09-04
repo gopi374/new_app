@@ -48,6 +48,10 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
     level: 'Heritage Explorer',
   });
 
+  const [citiesList, setCitiesList] = useState<string[]>([
+    'Indore', 'Ujjain', 'Bhopal', 'Jabalpur', 'Omkareshwar', 'Maheshwar', 'Dewas', 'Ratlam', 'Sehore'
+  ]);
+
   useEffect(() => {
     if (visible) {
       let isMounted = true;
@@ -66,7 +70,20 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
           // fallback
         }
       }
+
+      async function loadCities() {
+        try {
+          const dbCities = await heritageService.getCities();
+          if (isMounted && dbCities && dbCities.length > 0) {
+            setCitiesList(dbCities.map((c) => c.name));
+          }
+        } catch {
+          // fallback
+        }
+      }
+
       loadStats();
+      loadCities();
       return () => {
         isMounted = false;
       };
@@ -79,7 +96,7 @@ export const SideDrawer: React.FC<SideDrawerProps> = ({
   };
 
   const availableStates = ['Madhya Pradesh', 'Rajasthan', 'Uttar Pradesh', 'Karnataka'];
-  const availableCities = ['Indore', 'Bhopal', 'Gwalior', 'Ujjain', 'Jaipur'];
+  const availableCities = citiesList;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>

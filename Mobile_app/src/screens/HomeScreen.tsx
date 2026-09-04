@@ -10,8 +10,8 @@ import {
 import * as Location from 'expo-location';
 import { Header } from '../components/Header';
 import { SideDrawer } from '../components/SideDrawer';
-import { MONUMENTS, MARKETS } from '../data/mockData';
-import { Monument, MarketItem } from '../types';
+import { MONUMENTS, MARKETS, CITIES } from '../data/mockData';
+import { Monument, MarketItem, CityItem } from '../types';
 import { heritageService } from '../services/heritageService';
 import { useAuth } from '../context/AuthContext';
 
@@ -33,11 +33,25 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [activeChapter, setActiveChapter] = useState(0);
   const [weatherInfo, setWeatherInfo] = useState({ city: 'Indore', temp: '28°C', icon: '☀️' });
-  const [popularMonuments, setPopularMonuments] = useState<Monument[]>(MONUMENTS.slice(0, 2));
-  const [hiddenPlaces, setHiddenPlaces] = useState<Monument[]>(
-    MONUMENTS.filter((m) => m.category === 'Nature' || m.category === 'Ancient History')
-  );
-  const [culturalMarkets, setCulturalMarkets] = useState<MarketItem[]>(MARKETS);
+  const [selectedCity, setSelectedCity] = useState<string>('All');
+  const [cities, setCities] = useState<CityItem[]>(CITIES);
+  const [allMonuments, setAllMonuments] = useState<Monument[]>(MONUMENTS);
+  const [allMarkets, setAllMarkets] = useState<MarketItem[]>(MARKETS);
+
+  // Derived filtered lists
+  const popularMonuments = (selectedCity === 'All'
+    ? allMonuments
+    : allMonuments.filter((m) => m.city.toLowerCase() === selectedCity.toLowerCase())
+  ).slice(0, 4);
+
+  const hiddenPlaces = (selectedCity === 'All'
+    ? allMonuments
+    : allMonuments.filter((m) => m.city.toLowerCase() === selectedCity.toLowerCase())
+  ).filter((m) => m.category === 'Nature' || m.category === 'Ancient History' || m.category === 'Natural Site');
+
+  const culturalMarkets = selectedCity === 'All'
+    ? allMarkets
+    : allMarkets.filter((m) => m.city.toLowerCase() === selectedCity.toLowerCase());
 
   useEffect(() => {
     let isMounted = true;
@@ -64,6 +78,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           if (address) {
             detectedCity = address.city || address.subregion || address.district || address.region || 'Current Location';
           }
+
+          // Auto-select the city chip that best matches the GPS-detected city
+          if (isMounted) {
+            const rawLower = detectedCity.toLowerCase();
+            const matchedCity = CITIES.find(
+              (c) =>
+                rawLower.includes(c.name.toLowerCase()) ||
+                c.name.toLowerCase().includes(rawLower)
+            );
+            if (matchedCity) {
+              setSelectedCity(matchedCity.name);
+            }
+          }
         }
 
         const w = await heritageService.getWeatherStatus(detectedCity, userLat, userLng);
@@ -82,16 +109,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
     async function loadBackendData() {
       try {
-        const [mons, mkts] = await Promise.all([
+        const [mons, mkts, dbCities] = await Promise.all([
           heritageService.getMonuments(),
           heritageService.getMarkets(),
+          heritageService.getCities(),
         ]);
         if (isMounted) {
-          if (mons && mons.length > 0) {
-            setPopularMonuments(mons.slice(0, 4));
-            setHiddenPlaces(mons.filter((m) => m.category === 'Nature' || m.category === 'Ancient History'));
-          }
-          if (mkts && mkts.length > 0) setCulturalMarkets(mkts);
+          if (mons && mons.length > 0) setAllMonuments(mons);
+          if (mkts && mkts.length > 0) setAllMarkets(mkts);
+          if (dbCities && dbCities.length > 0) setCities(dbCities);
         }
       } catch (err) {
         // Fallback intact
@@ -137,6 +163,29 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <Text style={styles.weatherPillText}>{weatherInfo.icon} {weatherInfo.temp}</Text>
           </View>
         </View>
+
+        {/* City Filter Chips */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.cityChipsRow}
+        >
+          {[{ id: 'All', name: 'All Cities' }, ...cities].map((c) => {
+            const cid = 'id' in c ? c.id : c;
+            const isActive = selectedCity === (c.name === 'All Cities' ? 'All' : c.name);
+            return (
+              <TouchableOpacity
+                key={typeof cid === 'string' ? cid : c.name}
+                style={[styles.cityChip, isActive && styles.activeCityChip]}
+                onPress={() => setSelectedCity(c.name === 'All Cities' ? 'All' : c.name)}
+              >
+                <Text style={[styles.cityChipText, isActive && styles.activeCityChipText]}>
+                  {c.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
         {/* Documentary Reel Hero */}
         <View style={styles.reelContainer}>
@@ -411,6 +460,32 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: '#944A00',
+  },
+  cityChipsRow: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    paddingTop: 2,
+    gap: 8,
+  },
+  cityChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#F4F5F7',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  activeCityChip: {
+    backgroundColor: '#9E2016',
+    borderColor: '#9E2016',
+  },
+  cityChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  activeCityChipText: {
+    color: '#FFFFFF',
   },
   reelContainer: {
     width: '100%',

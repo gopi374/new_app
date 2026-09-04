@@ -26,11 +26,31 @@ app.use(cors({ origin: '*', methods: ['GET','POST','PUT','DELETE','PATCH','OPTIO
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health Check Route
+// Root & Health Check Routes
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    service: 'Dharohar Cultural Ecosystem API',
+    version: '1.0.0',
+    health: '/health',
+    api: '/api/v1',
+    message: 'Backend is running and ready for mobile & web clients.'
+  });
+});
+
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
     service: 'Dharohar Backend API',
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV || 'development',
+  });
+});
+
+app.get('/api/v1/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    service: 'Dharohar Backend API v1',
     timestamp: new Date().toISOString(),
     env: process.env.NODE_ENV || 'development',
   });

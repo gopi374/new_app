@@ -53,6 +53,14 @@ data class CulinarySignature(
   val description: String
 )
 
+data class CityModel(
+  val id: String,
+  val name: String,
+  val state: String = "Madhya Pradesh",
+  val description: String = "",
+  val emoji: String = "🏙️"
+)
+
 data class BadgeModel(
   val id: String,
   val title: String,
@@ -74,6 +82,18 @@ data class HeritageAppModel(
 )
 
 object HeritageDataSource {
+  val cities = listOf(
+    CityModel("city_indore_mp", "Indore", description = "Commercial & food capital of Central India", emoji = "🏙️"),
+    CityModel("city_ujjain_mp", "Ujjain", description = "Ancient sacred temple city on the Shipra River", emoji = "🛕"),
+    CityModel("city_bhopal_mp", "Bhopal", description = "City of Lakes, Mughal heritage, and art", emoji = "🏷️"),
+    CityModel("city_jabalpur_mp", "Jabalpur", description = "Marble rocks, Narmada waterfalls & Gond kingdom", emoji = "🏛️"),
+    CityModel("city_omkareshwar_mp", "Omkareshwar", description = "Sacred Narmada island Jyotirlinga", emoji = "🚿"),
+    CityModel("city_maheshwar_mp", "Maheshwar", description = "Ahilyabai Holkar’s river capital & Maheshwari sarees", emoji = "🧵"),
+    CityModel("city_dewas_mp", "Dewas", description = "Chamunda & Tulja Bhawani hill shrines", emoji = "⛪"),
+    CityModel("city_ratlam_mp", "Ratlam", description = "Malwa city famous for Ratlami Sev & royal palaces", emoji = "🏰"),
+    CityModel("city_sehore_mp", "Sehore", description = "Salkanpur pilgrimage & agricultural heartland", emoji = "🌿")
+  )
+
   val monuments = listOf(
     MonumentModel(
       id = "rajwada-palace",

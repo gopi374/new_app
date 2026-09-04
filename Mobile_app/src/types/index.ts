@@ -103,6 +103,31 @@ export interface UserProfile {
   visitedPlaceIds?: string[];
 }
 
+export interface CityItem {
+  id: string;
+  name: string;
+  state?: string;
+  countryCode?: string;
+  description?: string;
+  shortDescription?: string;
+  culturalSummary?: string;
+  highlights?: string[];
+  isFeatured?: boolean;
+}
+
+export interface TrailItem {
+  id: string;
+  name: string;
+  cityId: string;
+  stateId: string;
+  description: string;
+  theme?: string;
+  estimatedDurationMins?: number;
+  distanceKm?: number;
+  stops?: any[];
+  tags?: string[];
+}
+
 export type RootStackParamList = {
   MainTabs: undefined;
   MonumentDetail: { monumentId: string };

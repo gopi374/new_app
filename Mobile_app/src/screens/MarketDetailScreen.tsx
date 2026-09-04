@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,9 +6,12 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { Header } from '../components/Header';
 import { MARKETS } from '../data/mockData';
+import { MarketItem } from '../types';
+import { heritageService } from '../services/heritageService';
 
 interface MarketDetailScreenProps {
   marketId: string;
@@ -21,8 +24,33 @@ export const MarketDetailScreen: React.FC<MarketDetailScreenProps> = ({
 }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isStoryExpanded, setIsStoryExpanded] = useState(false);
+  const [market, setMarket] = useState<MarketItem | undefined>(
+    MARKETS.find((m) => m.id === marketId) || MARKETS[0]
+  );
+  const [isLoading, setIsLoading] = useState(true);
 
-  const market = MARKETS.find((m) => m.id === marketId) || MARKETS[0];
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    heritageService.getMarketById(marketId).then((m) => {
+      if (isMounted && m) setMarket(m);
+    }).catch(() => {}).finally(() => {
+      if (isMounted) setIsLoading(false);
+    });
+    return () => { isMounted = false; };
+  }, [marketId]);
+
+  if (!market) {
+    return (
+      <View style={styles.container}>
+        <Header title="Indian Heritage" showBack onBackPress={onBackPress} />
+        {isLoading
+          ? <ActivityIndicator style={{ marginTop: 60 }} size="large" color="#9E2016" />
+          : <Text style={{ textAlign: 'center', marginTop: 60, color: '#6B7280' }}>Market not found.</Text>
+        }
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

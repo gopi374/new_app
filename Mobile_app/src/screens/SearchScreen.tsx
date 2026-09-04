@@ -115,7 +115,7 @@ export const SearchScreen: React.FC<SearchScreenProps> = ({
           <Text style={styles.resultsTitle}>
             {selectedCategory === 'Popular' ? 'Popular Places' : `${selectedCategory} Places`}
           </Text>
-          <Text style={styles.resultsCount}>24 places</Text>
+          <Text style={styles.resultsCount}>{filteredMonuments.length} place{filteredMonuments.length !== 1 ? 's' : ''}</Text>
         </View>
 
         {/* List of Result Cards */}

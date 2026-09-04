@@ -1,5 +1,12 @@
 package com.example
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Geocoder
+import android.os.Looper
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -21,6 +28,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -29,8 +37,78 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import com.example.ui.theme.*
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import java.util.Locale
+
+// ---------------------------------------------------------------------------
+// Location Helper – resolves GPS → city name → matching DB city chip
+// ---------------------------------------------------------------------------
+object LocationHelper {
+  /**
+   * Fuzzy-match a raw city name from Geocoder against our 9 DB cities.
+   * e.g. "Indore City" → "Indore",  "Ujjain" → "Ujjain"
+   */
+  fun matchDbCity(rawCity: String?): String? {
+    if (rawCity.isNullOrBlank()) return null
+    val lower = rawCity.lowercase(Locale.getDefault())
+    return HeritageDataSource.cities.firstOrNull { city ->
+      lower.contains(city.name.lowercase()) ||
+      city.name.lowercase().contains(lower)
+    }?.name
+  }
+
+  /** Single-shot GPS fix + reverse geocode, calls back on main thread. */
+  fun detectCity(context: Context, onResult: (String?) -> Unit) {
+    val fusedClient = LocationServices.getFusedLocationProviderClient(context)
+    val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    if (!hasFine && !hasCoarse) { onResult(null); return }
+
+    // Try last known location first (instant, no battery cost)
+    fusedClient.lastLocation.addOnSuccessListener { loc ->
+      if (loc != null) {
+        reverseGeocode(context, loc.latitude, loc.longitude, onResult)
+      } else {
+        // Request a single fresh fix
+        val req = LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, 0)
+          .setMaxUpdates(1)
+          .build()
+        val cb = object : LocationCallback() {
+          override fun onLocationResult(res: LocationResult) {
+            fusedClient.removeLocationUpdates(this)
+            val l = res.lastLocation
+            if (l != null) reverseGeocode(context, l.latitude, l.longitude, onResult)
+            else onResult(null)
+          }
+        }
+        try {
+          fusedClient.requestLocationUpdates(req, cb, Looper.getMainLooper())
+        } catch (e: SecurityException) { onResult(null) }
+      }
+    }.addOnFailureListener { onResult(null) }
+  }
+
+  @Suppress("DEPRECATION")
+  private fun reverseGeocode(context: Context, lat: Double, lng: Double, onResult: (String?) -> Unit) {
+    try {
+      val geocoder = Geocoder(context, Locale.getDefault())
+      val addresses = geocoder.getFromLocation(lat, lng, 1)
+      val raw = addresses?.firstOrNull()?.let { addr ->
+        addr.locality ?: addr.subAdminArea ?: addr.adminArea
+      }
+      onResult(matchDbCity(raw))
+    } catch (e: Exception) { onResult(null) }
+  }
+}
+
+// ---------------------------------------------------------------------------
 
 sealed class HeritageScreen {
   data class Tab(val tabIndex: Int) : HeritageScreen()
@@ -200,9 +278,59 @@ fun ComposeHomeScreen(
   favorites: Set<String>,
   onToggleFavorite: (String) -> Unit
 ) {
+  val context = LocalContext.current
   var isMuted by remember { mutableStateOf(false) }
   var activeChapter by remember { mutableStateOf(0) }
+  var selectedCity by remember { mutableStateOf("All") }
+  var detectedCityLabel by remember { mutableStateOf("Detecting location…") }
+  var locationResolved by remember { mutableStateOf(false) }
   val chapters = listOf("01 Rajwada Palace", "02 Sarafa By Night", "03 Mandu Gates")
+
+  // Permission launcher – triggers GPS detection once granted
+  val locationPermLauncher = rememberLauncherForActivityResult(
+    ActivityResultContracts.RequestMultiplePermissions()
+  ) { perms ->
+    val granted = perms[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                  perms[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+    if (granted) {
+      LocationHelper.detectCity(context) { city ->
+        locationResolved = true
+        if (city != null) {
+          selectedCity = city
+          detectedCityLabel = "📍 $city"
+        } else {
+          detectedCityLabel = "📍 All Cities"
+        }
+      }
+    } else {
+      locationResolved = true
+      detectedCityLabel = "📍 All Cities"
+    }
+  }
+
+  // On first composition: check permission then detect city
+  LaunchedEffect(Unit) {
+    val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    if (hasFine || hasCoarse) {
+      LocationHelper.detectCity(context) { city ->
+        locationResolved = true
+        if (city != null) {
+          selectedCity = city
+          detectedCityLabel = "📍 $city"
+        } else {
+          detectedCityLabel = "📍 All Cities"
+        }
+      }
+    } else {
+      locationPermLauncher.launch(
+        arrayOf(
+          Manifest.permission.ACCESS_FINE_LOCATION,
+          Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+      )
+    }
+  }
 
   Box(modifier = Modifier.fillMaxSize()) {
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -269,14 +397,47 @@ fun ComposeHomeScreen(
           modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
           verticalAlignment = Alignment.CenterVertically
         ) {
-          Text("📍 Indore", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = HeritageOnSurface)
+          if (!locationResolved) {
+            CircularProgressIndicator(
+              modifier = Modifier.size(10.dp),
+              strokeWidth = 1.5.dp,
+              color = HeritageTerracotta
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+          }
+          Text(detectedCityLabel, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = HeritageOnSurface)
           Text(" • ", fontSize = 10.sp, color = HeritageOnSurfaceVariant)
           Text("☀️ 28°C", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = HeritageOnSurfaceVariant)
         }
       }
     }
 
-    Spacer(modifier = Modifier.height(10.dp))
+    Spacer(modifier = Modifier.height(8.dp))
+
+    // City Filter Chips
+    LazyRow(
+      contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+      horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+      val allOption = listOf("All") + HeritageDataSource.cities.map { it.name }
+      items(allOption) { city ->
+        val isActive = selectedCity == city
+        Surface(
+          shape = RoundedCornerShape(20.dp),
+          color = if (isActive) HeritageTerracotta else HeritageSurfaceVariant,
+          border = BorderStroke(1.dp, if (isActive) HeritageTerracotta else HeritageOutline),
+          modifier = Modifier.clickable { selectedCity = city }
+        ) {
+          Text(
+            city,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = if (isActive) Color.White else HeritageOnSurface,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+          )
+        }
+      }
+    }
 
     // Documentary Reel Hero
     Box(
@@ -450,12 +611,14 @@ fun ComposeHomeScreen(
     Spacer(modifier = Modifier.height(20.dp))
 
     // Section 1: Popular Monuments
-    SectionHeader("popular Monumnets", onSeeAll = onSeeAllMonuments)
+    SectionHeader("Popular Monuments", onSeeAll = onSeeAllMonuments)
+    val popularMons = if (selectedCity == "All") HeritageDataSource.monuments.take(4)
+      else HeritageDataSource.monuments.filter { it.city.equals(selectedCity, ignoreCase = true) }.take(4)
     LazyRow(
       contentPadding = PaddingValues(horizontal = 20.dp),
       horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-      items(HeritageDataSource.monuments.take(2)) { item ->
+      items(popularMons) { item ->
         MonumentCard(item = item, onClick = { onSelectMonument(item.id) })
       }
     }
@@ -468,7 +631,11 @@ fun ComposeHomeScreen(
       contentPadding = PaddingValues(horizontal = 20.dp),
       horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-      val hidden = HeritageDataSource.monuments.filter { it.category == "Nature" || it.category == "Ancient History" }
+      val allHidden = HeritageDataSource.monuments.filter {
+        it.category == "Nature" || it.category == "Ancient History" || it.category == "Natural Site"
+      }
+      val hidden = if (selectedCity == "All") allHidden
+        else allHidden.filter { it.city.equals(selectedCity, ignoreCase = true) }
       items(hidden) { item ->
         MonumentCard(item = item, onClick = { onSelectMonument(item.id) })
       }
@@ -482,7 +649,9 @@ fun ComposeHomeScreen(
       contentPadding = PaddingValues(horizontal = 20.dp),
       horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-      items(HeritageDataSource.markets) { item ->
+      val mkts = if (selectedCity == "All") HeritageDataSource.markets
+        else HeritageDataSource.markets.filter { it.city.equals(selectedCity, ignoreCase = true) }
+      items(mkts) { item ->
         MarketCard(item = item, onClick = { onSelectMarket(item.id) })
       }
     }
@@ -3680,7 +3849,7 @@ fun ComposeDharoharDrawer(
             }
           }
           if (isCityOpen) {
-            listOf("Indore", "Bhopal", "Gwalior", "Ujjain", "Jaipur").forEach { ct ->
+            HeritageDataSource.cities.map { it.name }.forEach { ct ->
               Text(
                 ct,
                 fontSize = 13.sp,

@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
-import { MONUMENTS, MARKETS, BADGES, HERITAGE_APPS, USER_PROFILE } from '../data/mockData';
-import { Monument, MarketItem, HeritageBadge, HeritageAppService, UserProfile } from '../types';
+import { MONUMENTS, MARKETS, BADGES, HERITAGE_APPS, USER_PROFILE, CITIES } from '../data/mockData';
+import { Monument, MarketItem, HeritageBadge, HeritageAppService, UserProfile, CityItem, TrailItem } from '../types';
 
 /**
  * Auto-detect backend URL:
@@ -129,11 +129,46 @@ class HeritageService {
   }
 
   /**
-   * Fetch all monuments from backend (with local fallback)
+   * Fetch all registered cities from backend
    */
-  async getMonuments(): Promise<Monument[]> {
+  async getCities(): Promise<CityItem[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/places?limit=50`, {
+      const response = await fetch(`${API_BASE_URL}/cities?limit=50`, {
+        headers: this.getHeaders(),
+      });
+      if (response.ok) {
+        const json = await response.json();
+        if (json.success && Array.isArray(json.data?.items) && json.data.items.length > 0) {
+          return json.data.items.map((item: any) => ({
+            id: item._id || item.id,
+            name: item.name,
+            state: item.state_id ? 'Madhya Pradesh' : item.state || 'Madhya Pradesh',
+            countryCode: item.country_code || 'IN',
+            description: item.description,
+            shortDescription: item.short_description,
+            culturalSummary: item.cultural_summary,
+            highlights: item.highlights || [],
+            isFeatured: item.is_featured ?? true,
+          }));
+        }
+      }
+    } catch (error) {
+      // Fallback
+    }
+    return [...CITIES];
+  }
+
+  /**
+   * Fetch monuments from backend with optional city filter (with local fallback)
+   */
+  async getMonuments(cityId?: string, limit: number = 100): Promise<Monument[]> {
+    try {
+      let url = `${API_BASE_URL}/places?limit=${limit}`;
+      if (cityId && cityId !== 'All') {
+        const formattedCityId = cityId.startsWith('city_') ? cityId : `city_${cityId.toLowerCase().replace(/\s+/g, '_')}_mp`;
+        url += `&city_id=${encodeURIComponent(formattedCityId)}`;
+      }
+      const response = await fetch(url, {
         headers: this.getHeaders(),
       });
       if (response.ok) {
@@ -148,10 +183,16 @@ class HeritageService {
     } catch (error) {
       // Backend unreachable, fallback to local data
     }
-    return this.monuments.map((m) => ({
-      ...m,
-      isFavorite: this.favorites.has(m.id),
-    }));
+    return this.monuments
+      .filter((m) => {
+        if (!cityId || cityId === 'All') return true;
+        const normFilter = cityId.replace(/^city_/, '').replace(/_[a-z0-9]+$/, '').replace(/_/g, ' ').toLowerCase();
+        return m.city.toLowerCase().includes(normFilter) || normFilter.includes(m.city.toLowerCase());
+      })
+      .map((m) => ({
+        ...m,
+        isFavorite: this.favorites.has(m.id),
+      }));
   }
 
   /**
@@ -181,11 +222,16 @@ class HeritageService {
   }
 
   /**
-   * Fetch all markets
+   * Fetch all markets with optional city filter
    */
-  async getMarkets(): Promise<MarketItem[]> {
+  async getMarkets(cityId?: string, limit: number = 50): Promise<MarketItem[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/markets?limit=50`, {
+      let url = `${API_BASE_URL}/markets?limit=${limit}`;
+      if (cityId && cityId !== 'All') {
+        const formattedCityId = cityId.startsWith('city_') ? cityId : `city_${cityId.toLowerCase().replace(/\s+/g, '_')}_mp`;
+        url += `&city_id=${encodeURIComponent(formattedCityId)}`;
+      }
+      const response = await fetch(url, {
         headers: this.getHeaders(),
       });
       if (response.ok) {
@@ -197,7 +243,11 @@ class HeritageService {
     } catch (error) {
       // Fallback
     }
-    return [...this.markets];
+    return this.markets.filter((m) => {
+      if (!cityId || cityId === 'All') return true;
+      const normFilter = cityId.replace(/^city_/, '').replace(/_[a-z0-9]+$/, '').replace(/_/g, ' ').toLowerCase();
+      return m.city.toLowerCase().includes(normFilter) || normFilter.includes(m.city.toLowerCase());
+    });
   }
 
   /**
@@ -218,6 +268,42 @@ class HeritageService {
       // Fallback
     }
     return this.markets.find((m) => m.id === id);
+  }
+
+  /**
+   * Fetch cultural and pilgrimage trails
+   */
+  async getTrails(cityId?: string): Promise<TrailItem[]> {
+    try {
+      let url = `${API_BASE_URL}/trails?limit=50`;
+      if (cityId && cityId !== 'All') {
+        const formattedCityId = cityId.startsWith('city_') ? cityId : `city_${cityId.toLowerCase().replace(/\s+/g, '_')}_mp`;
+        url += `&city_id=${encodeURIComponent(formattedCityId)}`;
+      }
+      const response = await fetch(url, {
+        headers: this.getHeaders(),
+      });
+      if (response.ok) {
+        const json = await response.json();
+        if (json.success && Array.isArray(json.data?.items) && json.data.items.length > 0) {
+          return json.data.items.map((t: any) => ({
+            id: t._id || t.id,
+            name: t.name,
+            cityId: t.city_id,
+            stateId: t.state_id,
+            description: t.description,
+            theme: t.theme,
+            estimatedDurationMins: t.estimated_duration_mins,
+            distanceKm: t.distance_km,
+            stops: t.stops || [],
+            tags: t.tags || [],
+          }));
+        }
+      }
+    } catch (error) {
+      // Fallback
+    }
+    return [];
   }
 
   /**
@@ -539,6 +625,69 @@ class HeritageService {
   }
 
   /**
+   * Helper: Resolve city name from city_id or string
+   */
+  private getCityNameFromId(cityId?: string): string {
+    if (!cityId) return 'Indore';
+    const cityMap: Record<string, string> = {
+      city_indore_mp: 'Indore',
+      city_ujjain_mp: 'Ujjain',
+      city_bhopal_mp: 'Bhopal',
+      city_jabalpur_mp: 'Jabalpur',
+      city_omkareshwar_mp: 'Omkareshwar',
+      city_maheshwar_mp: 'Maheshwar',
+      city_dewas_mp: 'Dewas',
+      city_ratlam_mp: 'Ratlam',
+      city_sehore_mp: 'Sehore',
+    };
+    if (cityMap[cityId]) return cityMap[cityId];
+    return cityId
+      .replace(/^city_/, '')
+      .replace(/_[a-z0-9]+$/, '')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  /**
+   * Helper: Get high quality photo for place based on name and category
+   */
+  private getPhotoForPlace(name: string, placeType?: string, cityId?: string): string {
+    const n = (name || '').toLowerCase();
+    if (n.includes('rajwada')) return 'https://images.unsplash.com/photo-1599831104321-4f10115e5743?w=800';
+    if (n.includes('lal bagh') || n.includes('lalbagh')) return 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800';
+    if (n.includes('mahakal')) return 'https://images.unsplash.com/photo-1609766857041-ed402ea8069a?w=800';
+    if (n.includes('ram ghat') || n.includes('gwarighat') || n.includes('kali ghat') || n.includes('ghat')) return 'https://images.unsplash.com/photo-1561361513-2d000a50f0dc?w=800';
+    if (n.includes('marble rocks') || n.includes('bhedaghat')) return 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800';
+    if (n.includes('dhuandhar') || n.includes('waterfall') || n.includes('falls')) return 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=800';
+    if (n.includes('omkareshwar') || n.includes('mamleshwar') || n.includes('siddhanath') || n.includes('kedareshwar')) return 'https://images.unsplash.com/photo-1548013146-72479768bada?w=800';
+    if (n.includes('maheshwar') || n.includes('ahilyabai') || n.includes('ahilyeshwar')) return 'https://images.unsplash.com/photo-1605649487212-47bdab064df8?w=800';
+    if (n.includes('madan mahal')) return 'https://images.unsplash.com/photo-1587474260584-136574528ed5?w=800';
+    if (n.includes('taj-ul') || n.includes('masjid')) return 'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=800';
+    if (n.includes('upper lake') || n.includes('bada talab') || n.includes('meetha talab') || n.includes('lotus')) return 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800';
+    if (n.includes('salkanpur') || n.includes('vindhyavasini')) return 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=800';
+    if (n.includes('dewas') || n.includes('tekri') || n.includes('chamunda') || n.includes('tulja')) return 'https://images.unsplash.com/photo-1545232979-8bf68ee9b1af?w=800';
+    if (n.includes('ratlam') || n.includes('sailana') || n.includes('cactus')) return 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800';
+    if (n.includes('bhimbetka') || n.includes('cave')) return 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800';
+    if (n.includes('museum')) return 'https://images.unsplash.com/photo-1566127444979-b3d2b654e3d7?w=800';
+    if (n.includes('temple') || n.includes('mandir') || n.includes('dham') || placeType === 'RELIGIOUS_SITE') return 'https://images.unsplash.com/photo-1567157577867-05ccb1388e66?w=800';
+    if (n.includes('fort') || n.includes('palace') || placeType === 'HERITAGE') return 'https://images.unsplash.com/photo-1599831104321-4f10115e5743?w=800';
+    if (placeType === 'NATURE' || placeType === 'NATURAL_SITE') return 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800';
+    return 'https://images.unsplash.com/photo-1599831104321-4f10115e5743?w=800';
+  }
+
+  /**
+   * Helper: Get high quality photo for market based on name
+   */
+  private getPhotoForMarket(name: string, cityId?: string): string {
+    const n = (name || '').toLowerCase();
+    if (n.includes('sarafa')) return 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800';
+    if (n.includes('chappan')) return 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=800';
+    if (n.includes('handloom') || n.includes('saree') || n.includes('cloth')) return 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?w=800';
+    if (n.includes('ghat') || n.includes('prasad') || n.includes('temple')) return 'https://images.unsplash.com/photo-1561361513-2d000a50f0dc?w=800';
+    return 'https://images.unsplash.com/photo-1533900298318-6b8da08a523e?w=800';
+  }
+
+  /**
    * Helper: Normalize Place schema from MongoDB into Mobile Monument model
    */
   private normalizePlaceToMonument(item: any): Monument {
@@ -548,33 +697,41 @@ class HeritageService {
       return { ...localMatch, isFavorite: this.favorites.has(id) };
     }
 
+    const cityName = this.getCityNameFromId(item.city_id || item.city || item.address?.city_id);
+    const categoryName = item.category || (item.place_type ? item.place_type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : 'Heritage');
+    const image = item.imageUrl || item.media?.[0]?.url || this.getPhotoForPlace(item.name, item.place_type, item.city_id);
+
     return {
       id,
       name: item.name || item.title || 'Heritage Site',
-      subtitle: item.subtitle || item.category || 'Historical Monument',
-      city: item.city || item.location_name?.split(',')[0] || 'India',
+      subtitle: item.subtitle || item.short_description || item.architectural_style || `${cityName} Landmark`,
+      city: cityName,
       state: item.state || 'Madhya Pradesh',
-      category: item.category || 'Heritage',
-      categoryTag: item.categoryTag || item.tags?.[0] || 'Historical Landmark',
-      description: item.description || 'Explore the rich history and architecture of this landmark.',
-      detailedStory: item.detailedStory || item.description || 'Built with architectural excellence.',
-      imageUrl:
-        item.imageUrl ||
-        item.media?.[0]?.url ||
-        'https://images.unsplash.com/photo-1599831104321-4f10115e5743?w=800',
+      category: categoryName,
+      categoryTag: item.categoryTag || (item.tags && item.tags.length ? item.tags[0].replace(/_/g, ' ').toUpperCase() : categoryName.toUpperCase()),
+      description: item.description || item.short_description || 'Explore the rich cultural history and architecture of this landmark.',
+      detailedStory: item.detailedStory || item.historical_significance || item.description || 'Built with architectural excellence and cultural resonance.',
+      imageUrl: image,
       rating: item.rating || 4.8,
       isFavorite: this.favorites.has(id),
       latitude: item.location?.coordinates ? item.location.coordinates[1] : item.latitude,
       longitude: item.location?.coordinates ? item.location.coordinates[0] : item.longitude,
-      highlights: item.highlights || [
-        { id: 'h1', title: 'Architectural Marvel', description: 'Intricate design and heritage stone craft.', iconName: 'account-balance' },
-      ],
+      highlights: item.highlights || (item.tags && item.tags.length
+        ? item.tags.slice(0, 4).map((t: string, i: number) => ({
+            id: `h${i}`,
+            title: t.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+            description: 'Significant cultural and architectural hallmark of this site.',
+            iconName: 'account-balance',
+          }))
+        : [
+            { id: 'h1', title: 'Architectural Marvel', description: 'Intricate design and heritage craftsmanship.', iconName: 'account-balance' },
+          ]),
       visitingInfo: item.visitingInfo || {
-        openingHours: item.opening_hours || '10:00 AM – 5:00 PM',
-        closedDays: 'Open Daily',
-        entryFeeIndian: '₹10 (Indians)',
-        entryFeeForeigner: '₹250 (Foreigners)',
-        bestTimeToVisit: 'October – March',
+        openingHours: item.visiting_hours || item.opening_hours || '6:00 AM – 8:00 PM',
+        closedDays: item.closed_days || 'Open Daily',
+        entryFeeIndian: item.entry_fee || 'Free Entry',
+        entryFeeForeigner: item.entry_fee || 'Free Entry',
+        bestTimeToVisit: item.best_time_to_visit || 'October – March',
       },
     };
   }
@@ -587,24 +744,34 @@ class HeritageService {
     const localMatch = this.markets.find((m) => m.id === id);
     if (localMatch) return localMatch;
 
+    const cityName = this.getCityNameFromId(item.city_id || item.city || item.address?.city_id);
+    const categoryName = item.category || (item.market_type ? item.market_type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : 'Cultural Market');
+    const image = item.imageUrl || item.media?.[0]?.url || this.getPhotoForMarket(item.name, item.city_id);
+
     return {
       id,
       name: item.name || 'Traditional Market',
-      subtitle: item.subtitle || 'Night Market & Food Paradise',
-      city: item.city || 'Indore',
+      subtitle: item.subtitle || (item.best_known_for?.length ? item.best_known_for.slice(0, 3).join(' • ') : `${cityName} Traditional Market`),
+      city: cityName,
       state: item.state || 'Madhya Pradesh',
-      category: item.category || 'Cultural Night Market',
-      description: item.description || 'Vibrant night bazaar known for authentic delicacies and handicrafts.',
-      detailedStory: item.detailedStory || item.description || 'Famous heritage market.',
-      imageUrl: item.imageUrl || item.media?.[0]?.url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800',
-      culinarySignatures: item.culinarySignatures || [
-        { id: 'c1', title: 'Local Delicacies', description: 'Freshly prepared traditional street food.' },
-      ],
+      category: categoryName,
+      description: item.description || 'Vibrant traditional bazaar known for authentic regional delicacies, textiles, and local crafts.',
+      detailedStory: item.detailedStory || item.description || 'A focal point of regional commerce and centuries-old artisan traditions.',
+      imageUrl: image,
+      culinarySignatures: item.culinarySignatures || (item.best_known_for && item.best_known_for.length
+        ? item.best_known_for.map((name: string, i: number) => ({
+            id: `c${i}`,
+            title: name,
+            description: 'Authentic specialty cherished by locals and travellers alike.',
+          }))
+        : [
+            { id: 'c1', title: 'Local Delicacies', description: 'Freshly prepared traditional regional foods.' },
+          ]),
       visitingInfo: item.visitingInfo || {
-        marketHours: '8:00 PM – 2:00 AM',
-        setupTime: '7:30 PM',
-        peakCrowd: '10:00 PM – 12:00 AM',
-        gettingThere: 'Central city access via local auto or taxi.',
+        marketHours: item.operating_hours || '9:00 AM – 9:00 PM',
+        setupTime: 'Morning opening',
+        peakCrowd: 'Evening (6:00 PM – 9:00 PM)',
+        gettingThere: item.address?.line1 || `${cityName} central access via auto or cab.`,
       },
     };
   }

@@ -4,10 +4,13 @@
   "description": "Dharohar - India's Digital Cultural Ecosystem Backend API",
   "main": "src/server.js",
   "type": "commonjs",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "build":"npm run build",
+    "build": "node -e \"console.log('Backend build complete')\"",
     "create-indexes": "node scripts/create-indexes.js",
     "seed:indore": "node scripts/seed/indore.js",
     "seed:ujjain": "node scripts/seed/ujjain.js",
